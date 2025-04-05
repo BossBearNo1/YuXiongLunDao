@@ -23,10 +23,10 @@ cd YuXiongLunDao
 
 ```text
 YuXiongLunDao/
-├── index.html			# 默认主页面负责跳转
-├── index_16.html			# 独立的加解密页面，使用16个字加密。
-├── index_128.html			# 独立的加解密页面，使用128个字加密。
-├── index_128_random.html		# 独立的加解密页面，使用128个字加密，且每次加密结果随机。
+├── index.html               # 默认主页面负责跳转
+├── index_16.html            # 独立的加解密页面，使用16个字加密。
+├── index_128.html           # 独立的加解密页面，使用128个字加密。
+├── index_128_random.html    # 独立的加解密页面，使用128个字加密，且每次加密结果随机。
 ```
 
 
