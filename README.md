@@ -15,7 +15,8 @@
 ```bash
 git clone https://github.com/BossBearNo1/YuXiongLunDao.git
 cd YuXiongLunDao
-# 直接打开index.html即可
+```
+直接打开index.html即可
 
 
 ## ✨ 文件版本
@@ -26,7 +27,7 @@ YuXiongLunDao/
 ├── index_16.html                   # 独立的加解密页面，使用16个字加密。
 ├── index_128.html                 # 独立的加解密页面，使用128个字加密。
 ├── index_128_random.html    # 独立的加解密页面，使用128个字加密，且每次加密结果随机。
-
+```
 
 
 
