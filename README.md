@@ -6,14 +6,6 @@
 请注意：此工具为简单的复刻项目，并不是与熊论道的原始算法，所以不能解密之前与熊论道加密过的密文，建议使用此工具重新加密原文本再使用。
 
 
-## ✨ 文件版本
-
-### index.html - 默认主页面负责跳转
-### index_16.html - 独立的加解密页面，使用16个字加密。
-### index_128.html - 独立的加解密页面，使用128个字加密。
-### index_128_random.html - 独立的加解密页面，使用128个字加密，且每次加密结果随机。
-
-
 ## 🚀 快速开始
 
 ### 在线使用
@@ -24,3 +16,19 @@
 git clone https://github.com/BossBearNo1/YuXiongLunDao.git
 cd YuXiongLunDao
 # 直接打开index.html即可
+
+
+## ✨ 文件版本
+
+```text
+YuXiongLunDao/
+├── index.html                        # 默认主页面负责跳转
+├── index_16.html                   # 独立的加解密页面，使用16个字加密。
+├── index_128.html                 # 独立的加解密页面，使用128个字加密。
+├── index_128_random.html    # 独立的加解密页面，使用128个字加密，且每次加密结果随机。
+
+
+
+
+
+
