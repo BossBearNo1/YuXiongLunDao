@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>与熊论道加密解密工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 100px;
+            font-size: 16px;
+            resize: vertical;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            flex: 1;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #decryptBtn {
+            background-color: #2ecc71;
+        }
+        #decryptBtn:hover {
+            background-color: #27ae60;
+        }
+        .prefix-note {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        .error {
+            color: #e74c3c;
+            margin-top: 10px;
+        }
+        .success {
+            color: #2ecc71;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>与熊论道加密解密工具（复刻）</h1>
+        <label>请注意：此工具为简单的复刻项目，并不是与熊论道的原始算法，所以不能解密之前与熊论道加密过的密文，建议使用此工具重新加密原文本再使用。</label>
+        
+        <div class="input-group">
+            <label for="plaintext">明文（输入要加密的文字）</label>
+            <textarea id="plaintext" placeholder="请输入要加密的文字..."></textarea>
+        </div>
+        
+        <div class="input-group">
+            <label for="ciphertext">密文（输入佛经）</label>
+            <textarea id="ciphertext" placeholder="佛曰：..."></textarea>
+            <div class="prefix-note">注意：有效的密文应以"佛曰："开头</div>
+        </div>
+        
+        <div class="btn-group">
+            <button id="encryptBtn">加密</button>
+            <button id="decryptBtn">解密</button>
+        </div>
+        
+        <div id="message"></div>
+    </div>
+
+    <script>
+        // AES 配置
+        const key = CryptoJS.enc.Utf8.parse('ThisIsAKey123456');  // 16字节密钥
+
+        // 128字符佛经字符集
+        const foYue = [
+            '滅', '苦', '婆', '娑', '耶', '陀', '跋', '多', '漫', '都', '殿', '悉', '夜', '爍', '帝', '吉',
+            '利', '阿', '無', '南', '那', '怛', '喝', '羯', '勝', '摩', '伽', '謹', '波', '者', '穆', '僧',
+            '室', '藝', '尼', '瑟', '地', '彌', '菩', '提', '蘇', '醯', '盧', '呼', '舍', '佛', '參', '沙',
+            '伊', '隸', '麼', '遮', '闍', '度', '蒙', '孕', '薩', '夷', '迦', '他', '姪', '豆', '特', '逝',
+            '朋', '輸', '楞', '栗', '寫', '數', '曳', '諦', '羅', '曰', '咒', '即', '密', '若', '般', '故',
+            '不', '實', '真', '訶', '切', '一', '除', '能', '等', '是', '上', '明', '大', '神', '知', '三',
+            '藐', '耨', '得', '依', '諸', '世', '槃', '涅', '竟', '究', '想', '夢', '倒', '顛', '離', '遠',
+            '怖', '恐', '有', '礙', '心', '所', '以', '亦', '智', '道', '下', '集', '盡', '死', '老', '至'
+        ];
+        const SEPARATORS = ['，', '。', '！', '？'];  // SEPARATORS 用于分割IV和body
+        const BYTEMARK = ['冥', '奢', '梵', '呐', '俱', '哆', '怯', '諳', '罰', '侄', '缽', '皤'];  // BYTEMARK 用于标记高位字节
+        const PREFIX = "佛曰：";  // 加密结果统一前缀
+
+        // 将字节数组转换为佛经字符
+        function bytesToFoYue(byteArray) {
+            let foStr = '';
+            for (let i = 0; i < byteArray.length; i++) {
+                const byte = byteArray[i];
+                if (byte >= 128) {
+                    // 高位字节，使用BYTEMARK标记
+                    const markIndex = Math.floor(Math.random() * BYTEMARK.length);
+                    foStr += BYTEMARK[markIndex] + foYue[byte - 128];
+                } else {
+                    // 普通字节
+                    foStr += foYue[byte];
+                }
+            }
+            return foStr;
+        }
+
+        // 将佛经字符转换为字节数组
+        function foYueToBytes(foStr) {
+            const byteArray = [];
+            let i = 0;
+            while (i < foStr.length) {
+                const currentChar = foStr[i];
+                if (BYTEMARK.includes(currentChar)) {
+                    // 处理高位字节
+                    i++;
+                    if (i >= foStr.length) break;
+                    const nextChar = foStr[i];
+                    byteArray.push(foYue.indexOf(nextChar) + 128);
+                } else {
+                    // 处理普通字节
+                    byteArray.push(foYue.indexOf(currentChar));
+                }
+                i++;
+            }
+            return byteArray;
+        }
+
+        function encryptString(plaintext) {
+            const randomIv = CryptoJS.lib.WordArray.random(16);  // 生成随机IV（16字节）
+
+            // 使用CryptoJS进行AES-CBC加密
+            const encrypted = CryptoJS.AES.encrypt(
+                CryptoJS.enc.Utf8.parse(plaintext),
+                key,
+                {
+                    iv: randomIv,  // 使用随机IV
+                    mode: CryptoJS.mode.CBC,
+                    padding: CryptoJS.pad.Pkcs7
+                }
+            );
+
+            // 转换IV
+            const ivStr = bytesToFoYue(Array.from(new Uint8Array(randomIv.toString(CryptoJS.enc.Hex).match(/.{2}/g).map(h => parseInt(h, 16)))));
+
+            // 分割IV和body
+            const segStr = SEPARATORS[Math.floor(Math.random() * SEPARATORS.length)];
+
+            // 转换body
+            const ciphertext = Array.from(
+                new Uint8Array(
+                    CryptoJS.enc.Hex.parse(encrypted.ciphertext.toString(CryptoJS.enc.Hex)).words
+                        .flatMap(word => [(word >>> 24) & 0xFF, (word >>> 16) & 0xFF, (word >>> 8) & 0xFF, word & 0xFF])
+                        .slice(0, encrypted.ciphertext.sigBytes)
+                )
+            );
+            const bodyStr = bytesToFoYue(ciphertext);
+
+            // 将IV和body一起存储
+            return PREFIX + ivStr + segStr + bodyStr;
+        }
+
+        // 解密字符串
+        function decryptString(cipherText) {
+            if (!cipherText.startsWith(PREFIX)) {
+                throw new Error("无效的密文格式，缺少前缀 '佛曰:'");
+            }
+
+            const foBody = cipherText.slice(PREFIX.length);
+
+            // 查找第一个出现的中文标点分隔符
+            let separatorPos = -1;
+            let foundSeparator = '';
+            for (const sep of SEPARATORS) {
+                const pos = foBody.indexOf(sep);
+                if (pos > 0 && (separatorPos === -1 || pos < separatorPos)) {
+                    separatorPos = pos;
+                    foundSeparator = sep;
+                }
+            }
+
+            if (separatorPos === -1) {
+                throw new Error("无效的密文格式！");
+            }
+
+            const ivStr = foBody.substring(0, separatorPos);
+            const cipherStr = foBody.substring(separatorPos + foundSeparator.length);
+
+            // 转换回字节数组
+            const ivBytes = foYueToBytes(ivStr);
+            const cipherBytes = foYueToBytes(cipherStr);
+
+            // 转换为CryptoJS格式
+            const ivWA = CryptoJS.lib.WordArray.create(new Uint8Array(ivBytes));
+            const ciphertextWA = CryptoJS.lib.WordArray.create(new Uint8Array(cipherBytes));
+
+            // 解密
+            const decrypted = CryptoJS.AES.decrypt(
+                { ciphertext: ciphertextWA },
+                key,
+                {
+                    iv: ivWA,
+                    mode: CryptoJS.mode.CBC,
+                    padding: CryptoJS.pad.Pkcs7
+                }
+            );
+
+            return decrypted.toString(CryptoJS.enc.Utf8);
+        }
+
+        // DOM操作和事件处理
+        document.getElementById('encryptBtn').addEventListener('click', () => {
+            const plaintext = document.getElementById('plaintext').value.trim();
+            if (!plaintext) {
+                showMessage('请输入要加密的文字', 'error');
+                return;
+            }
+            
+            try {
+                const ciphertext = encryptString(plaintext);
+                document.getElementById('ciphertext').value = ciphertext;
+                showMessage('加密成功！', 'success');
+            } catch (error) {
+                showMessage('加密失败: ' + error.message, 'error');
+            }
+        });
+        
+        document.getElementById('decryptBtn').addEventListener('click', () => {
+            const ciphertext = document.getElementById('ciphertext').value.trim();
+            if (!ciphertext) {
+                showMessage('请输入要解密的佛经！', 'error');
+                return;
+            }
+            
+            try {
+                const plaintext = decryptString(ciphertext);
+                document.getElementById('plaintext').value = plaintext;
+                if (!plaintext) {
+                    showMessage('解密为空，请检查密文！', 'error');
+                    return;
+                }
+                showMessage('解密成功！', 'success');
+            } catch (error) {
+                showMessage('解密失败: ' + error.message, 'error');
+            }
+        });
+        
+        function showMessage(msg, type) {
+            const msgElement = document.getElementById('message');
+            msgElement.textContent = msg;
+            msgElement.className = type;
+        }
+    </script>
+</body>
+</html>

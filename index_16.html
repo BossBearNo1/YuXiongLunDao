@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>与熊论道加密解密工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 100px;
+            font-size: 16px;
+            resize: vertical;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            flex: 1;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #decryptBtn {
+            background-color: #2ecc71;
+        }
+        #decryptBtn:hover {
+            background-color: #27ae60;
+        }
+        .prefix-note {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        .error {
+            color: #e74c3c;
+            margin-top: 10px;
+        }
+        .success {
+            color: #2ecc71;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>与熊论道加密解密工具（复刻）</h1>
+        <label>请注意：此工具为简单的复刻项目，并不是与熊论道的原始算法，所以不能解密之前与熊论道加密过的密文，建议使用此工具重新加密原文本再使用。</label>
+        
+        <div class="input-group">
+            <label for="plaintext">明文（输入要加密的文字）</label>
+            <textarea id="plaintext" placeholder="请输入要加密的文字..."></textarea>
+        </div>
+        
+        <div class="input-group">
+            <label for="ciphertext">密文（输入佛经）</label>
+            <textarea id="ciphertext" placeholder="佛曰：..."></textarea>
+            <div class="prefix-note">注意：有效的密文应以"佛曰："开头</div>
+        </div>
+        
+        <div class="btn-group">
+            <button id="encryptBtn">加密</button>
+            <button id="decryptBtn">解密</button>
+        </div>
+        
+        <div id="message"></div>
+    </div>
+
+    <script>
+        // AES 配置
+        const key = CryptoJS.enc.Utf8.parse('ThisIsAKey123456');  // 16字节密钥
+        const iv = CryptoJS.enc.Utf8.parse('\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00');  // 16字节IV（固定，全零）
+        
+        const rainAlphabet = "阿無南婆娑耶陀苦利度伊訶依迦密若";
+        const hexDigits = "0123456789abcdef";
+        
+        // 创建十六进制到佛经的映射
+        const hexToRain = {};
+        for (let i = 0; i < hexDigits.length; i++) {
+            hexToRain[hexDigits[i]] = rainAlphabet[i];
+        }
+        
+        // 创建佛经到十六进制的映射
+        const rainToHex = {};
+        for (const [hex, rain] of Object.entries(hexToRain)) {
+            rainToHex[rain] = hex;
+        }
+        
+        const PREFIX = "佛曰：";  // 加密结果统一前缀
+        
+        // 将字节数组转换为佛经
+        function bytesToRain(byteArray) {
+            let hexStr = '';
+            for (let i = 0; i < byteArray.length; i++) {
+                const hex = byteArray[i].toString(16).padStart(2, '0');
+                hexStr += hex;
+            }
+            
+            let rainStr = '';
+            for (const ch of hexStr) {
+                rainStr += hexToRain[ch];
+            }
+            return rainStr;
+        }
+        
+        // 将佛经转换为字节数组
+        function rainToBytes(rainStr) {
+            let hexStr = '';
+            for (const ch of rainStr) {
+                hexStr += rainToHex[ch];
+            }
+            
+            const byteArray = [];
+            for (let i = 0; i < hexStr.length; i += 2) {
+                byteArray.push(parseInt(hexStr.substr(i, 2), 16));
+            }
+            return byteArray;
+        }
+        
+        // 加密字符串
+        function encryptString(plaintext) {
+            // 使用CryptoJS进行AES-CBC加密
+            const encrypted = CryptoJS.AES.encrypt(
+                CryptoJS.enc.Utf8.parse(plaintext),
+                key,
+                {
+                    iv: iv,
+                    mode: CryptoJS.mode.CBC,
+                    padding: CryptoJS.pad.Pkcs7
+                }
+            );
+
+            // 正确转换WordArray为字节数组
+            const ciphertext = CryptoJS.enc.Hex.parse(
+            encrypted.ciphertext.toString(CryptoJS.enc.Hex)
+            ).toString(CryptoJS.enc.Latin1)
+            .split('')
+            .map(c => c.charCodeAt(0));
+
+            return PREFIX + bytesToRain(ciphertext);
+        }
+        
+        // 解密字符串
+        function decryptString(cipherText) {
+            if (!cipherText.startsWith(PREFIX)) {
+                throw new Error("无效的密文格式，缺少前缀 '佛曰:'");
+            }
+            
+            const foBody = cipherText.slice(PREFIX.length);
+            const ciphertext = rainToBytes(foBody);
+
+            // 将字节数组转换为CryptoJS的WordArray
+            const ciphertextWA = CryptoJS.lib.WordArray.create(new Uint8Array(ciphertext));
+
+            // 使用CryptoJS进行AES-CBC解密
+            const decrypted = CryptoJS.AES.decrypt(
+                { ciphertext: ciphertextWA },
+                key,
+                {
+                    iv: iv,
+                    mode: CryptoJS.mode.CBC,
+                    padding: CryptoJS.pad.Pkcs7
+                }
+            );
+
+<!--            console.log("??", foBody);-->
+<!--            console.log("??", ciphertext);-->
+<!--            console.log("??", ciphertextWA);-->
+<!--            console.log("??", decrypted);-->
+<!--            console.log("??", decrypted.toString(CryptoJS.enc.Utf8));-->
+
+            return decrypted.toString(CryptoJS.enc.Utf8);
+        }
+        
+        // DOM操作和事件处理
+        document.getElementById('encryptBtn').addEventListener('click', () => {
+            const plaintext = document.getElementById('plaintext').value.trim();
+            if (!plaintext) {
+                showMessage('请输入要加密的文字', 'error');
+                return;
+            }
+            
+            try {
+                const ciphertext = encryptString(plaintext);
+                document.getElementById('ciphertext').value = ciphertext;
+                showMessage('加密成功！', 'success');
+            } catch (error) {
+                showMessage('加密失败: ' + error.message, 'error');
+            }
+        });
+        
+        document.getElementById('decryptBtn').addEventListener('click', () => {
+            const ciphertext = document.getElementById('ciphertext').value.trim();
+            if (!ciphertext) {
+                showMessage('请输入要解密的佛经！', 'error');
+                return;
+            }
+            
+            try {
+                const plaintext = decryptString(ciphertext);
+                document.getElementById('plaintext').value = plaintext;
+                if (!plaintext) {
+                    showMessage('解密为空，请检查密文！', 'error');
+                    return;
+                }
+                showMessage('解密成功！', 'success');
+            } catch (error) {
+                showMessage('解密失败: ' + error.message, 'error');
+            }
+        });
+        
+        function showMessage(msg, type) {
+            const msgElement = document.getElementById('message');
+            msgElement.textContent = msg;
+            msgElement.className = type;
+        }
+    </script>
+</body>
+</html>
